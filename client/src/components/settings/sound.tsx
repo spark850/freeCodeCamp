@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import './sound.css';
 import { Spacer } from '@freecodecamp/ui';
-import { playTone } from '../../utils/tone';
+import { playTone, playAmbientSound, stopAmbientSound, AmbientSoundTypes } from '../../utils/tone';
 import ToggleButtonSetting from './toggle-button-setting';
 
 type SoundProps = {
@@ -20,7 +20,10 @@ export default function SoundSettings({
   const [volumeDisplay, setVolumeDisplay] = useState(
     (store.get('soundVolume') as number) ?? 50
   );
-  const [mayPlay, setMayPlay] = useState(true);
+  const [ambientType, setAmbientType] = useState<AmbientSoundTypes | null>(
+  (store.get('ambientSound') as AmbientSoundTypes) ?? null
+);
+const [isAmbientPlaying, setIsAmbientPlaying] = useState(false);
 
   function handleVolumeChange(event: ChangeEvent<HTMLInputElement>) {
     const inputValue = Number(event.target.value);
@@ -37,6 +40,22 @@ export default function SoundSettings({
       }, 200);
     }
   }
+  function handleAmbientSoundChange(type: AmbientSoundTypes) {
+  store.set('ambientSound', type);
+  setAmbientType(type);
+}
+
+function handleAmbientPlay() {
+  if (ambientType) {
+    void playAmbientSound(ambientType);
+    setIsAmbientPlaying(true);
+  }
+}
+
+function handleAmbientStop() {
+  stopAmbientSound();
+  setIsAmbientPlaying(false);
+}
 
   return (
     <>
@@ -64,8 +83,42 @@ export default function SoundSettings({
         className='soundbar'
         onInput={handleVolumeChange}
       />
+      
+      <Spacer size='m' />
+      <div className='ambient-sound-settings'>
+        <label htmlFor='ambient-sound-select'>
+          Ambient Sound:
+        </label>
+        <select
+          id='ambient-sound-select'
+          value={ambientType ?? ''}
+          onChange={e =>
+            handleAmbientSoundChange(
+              e.target.value as AmbientSoundTypes
+            )
+          }
+        >
+          <option value=''>-- Select Sound --</option>
+          <option value='bonfire'>🔥 Bonfire</option>
+          <option value='rain'>🌧️ Rain</option>
+          <option value='night-crickets'>🦗 Night Crickets</option>
+        </select>
+        <button
+          disabled={!ambientType}
+          onClick={handleAmbientPlay}
+        >
+          {isAmbientPlaying ? '🔊 Playing...' : '▶️ Play'}
+        </button>
+        <button
+          disabled={!isAmbientPlaying}
+          onClick={handleAmbientStop}
+        >
+          ⏹️ Stop
+        </button>
+      </div>
       <Spacer size='m' />
     </>
+  );
   );
 }
 

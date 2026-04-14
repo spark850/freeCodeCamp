@@ -1,6 +1,12 @@
 import store from 'store';
 import { FlashMessages } from '../../components/Flash/redux/flash-messages';
 import { LocalStorageThemes } from '../../redux/types';
+import type { Player } from 'tone';
+
+const BONFIRE = 'https://campfire-mode.freecodecamp.org/bonfire.mp3';
+const RAIN = 'https://campfire-mode.freecodecamp.org/rain.mp3';
+const NIGHT_CRICKETS = 'https://campfire-mode.freecodecamp.org/night-crickets.mp3';
+
 const TRY_AGAIN = 'https://campfire-mode.freecodecamp.org/try-again.mp3';
 const CHAL_COMP = 'https://campfire-mode.freecodecamp.org/chal-comp.mp3';
 
@@ -109,5 +115,49 @@ export async function playTone(state: ToneStates): Promise<void> {
 
     await Tone.loaded();
     player.start();
+  }
+}
+
+export const ambientSounds = {
+  bonfire: BONFIRE,
+  rain: RAIN,
+  'night-crickets': NIGHT_CRICKETS
+} as const;
+
+export type AmbientSoundTypes = keyof typeof ambientSounds;
+
+let ambientPlayer: Player | null = null;
+
+export async function playAmbientSound(
+  type: AmbientSoundTypes
+): Promise<void> {
+  const playSound = !!store.get('fcc-sound');
+  if (!playSound) return;
+
+  const Tone = await import('tone');
+
+  // Stop existing ambient sound if playing
+  if (ambientPlayer) {
+    ambientPlayer.stop();
+    ambientPlayer.dispose();
+    ambientPlayer = null;
+  }
+
+  ambientPlayer = new Tone.Player(ambientSounds[type]).toDestination();
+  ambientPlayer.loop = true;
+
+  const storedVolume = (store.get('soundVolume') as number) ?? 50;
+  const calculateDecibel = -60 * (1 - storedVolume / 100);
+  ambientPlayer.volume.value = calculateDecibel;
+
+  await Tone.loaded();
+  ambientPlayer.start();
+}
+
+export function stopAmbientSound(): void {
+  if (ambientPlayer) {
+    ambientPlayer.stop();
+    ambientPlayer.dispose();
+    ambientPlayer = null;
   }
 }
