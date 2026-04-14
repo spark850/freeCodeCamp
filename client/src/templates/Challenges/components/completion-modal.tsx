@@ -91,23 +91,26 @@ function CompletionModal({
   const submitChallenge = useSubmit();
   // We can't useMemo here, because it does not guarantee that the URL object
   // will be revoked when the dependencies change.
-  useEffect(() => {
-    // downloadURL is not in the dependency array because it should only change
-    // if the challengeFiles change. It is in the useEffect so that we cannot
-    // leak URL objects.
-    if (downloadURL) URL.revokeObjectURL(downloadURL);
-    // Guard against stale state updates after unmount or challengeFiles change.
-    let cancelled = false;
-    if (challengeFiles?.length) {
-      createZipBlob(challengeFiles).then(blob => {
-        if (!cancelled) setDownloadURL(URL.createObjectURL(blob));
-      });
+useEffect(() => {
+  let cancelled = false;
+  let currentURL: string | undefined;
+
+  if (challengeFiles?.length) {
+    createZipBlob(challengeFiles).then(blob => {
+      if (!cancelled) {
+        currentURL = URL.createObjectURL(blob);
+        setDownloadURL(currentURL);
+      }
+    });
+  }
+
+  return () => {
+    cancelled = true;
+    if (currentURL) {
+      URL.revokeObjectURL(currentURL);
     }
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [challengeFiles]);
+  };
+}, [challengeFiles]);
 
   useEffect(() => {
     return () => {
